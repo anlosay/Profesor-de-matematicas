@@ -1,3 +1,4 @@
+
 import streamlit as st
 import google.generativeai as genai
 import os
@@ -12,8 +13,8 @@ else:
 
 # 📌 Configuración del chatbot
 generation_config = {
-    "temperature": 1,
-    "top_p": 0.95,
+    "temperature": 0.8,  # Reducimos la temperatura para respuestas más estables
+    "top_p": 0.9,
     "top_k": 40,
     "max_output_tokens": 8192,
 }
@@ -82,6 +83,11 @@ Para asegurarse de que el estudiante razona cada paso y no solo sigue instruccio
 ✅ Ofrecer problemas similares con ligeras variaciones para confirmar su aprendizaje.
 Ejemplo:
 "Has resuelto 3x + 7 = 16. Ahora intenta resolver 4x + 5 = 17 con el mismo método."
+
+1. **Mantén el historial de conversación**: recuerda lo que el alumno dice en el chat.
+2. **Corrige errores** si el alumno se equivoca y explícale por qué.
+3. **No repitas preguntas** si el alumno ya ha respondido correctamente.
+4. **Si el usuario da una respuesta incorrecta**, reformula la pregunta de manera más clara.
 """
 
 # 📌 Configuración de la página
@@ -106,14 +112,16 @@ if pregunta:
     st.session_state.messages.append({"role": "user", "content": pregunta})
     st.chat_message("user").write(pregunta)
 
-    # 📌 Enviar la pregunta a Gemini
+    # 📌 Enviar la conversación completa a Gemini
+    chat_history = [{"role": msg["role"], "content": msg["content"]} for msg in st.session_state.messages]
+    
     model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
+        model_name="gemini-2.0-pro",
         generation_config=generation_config,
         system_instruction=system_instruction,
     )
 
-    response = model.generate_content(pregunta)
+    response = model.generate_content(chat_history)  # Ahora enviamos todo el historial
     
     if hasattr(response, "text"):
         respuesta_texto = response.text
@@ -123,3 +131,6 @@ if pregunta:
     # 📌 Agregar respuesta al historial y mostrarla en pantalla
     st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
     st.chat_message("assistant").write(respuesta_texto)
+
+
+
