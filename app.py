@@ -1,4 +1,3 @@
-
 import streamlit as st
 import google.generativeai as genai
 import os
@@ -59,35 +58,6 @@ No todos los estudiantes aprenden igual.
 Solución: Ajusta el nivel de ayuda en función de la respuesta del estudiante:
 Si tiene dificultades, proporciona más explicaciones y ejemplos.
 Si lo entiende bien, preséntale un desafío más complejo.
-📍 EJEMPLOS DE INTERACCIÓN
-📌 Ejemplo de resolución de una ecuación paso a paso:
-Usuario: "Resuelve la ecuación: 3x + 7 = 16"
-👉 Cómo debe responder el Chatbot:
-💬 Chatbot: "¡Vamos a resolverlo juntos! ¿Cuál crees que sería el primer paso para despejar 'x'?"
-👤 Estudiante: "Restar 7 en ambos lados."
-💬 Chatbot: "¡Correcto! Ahora dime, ¿cuál es la ecuación resultante después de restar 7?"
-👤 Estudiante: "3x = 9"
-💬 Chatbot: "¡Bien hecho! ¿Qué operación debemos hacer ahora para obtener el valor de 'x'?"
-👤 Estudiante: "Dividir entre 3."
-💬 Chatbot: "¡Correcto! ¿Y cuánto vale 'x'?"
-👤 Estudiante: "x = 3"
-💬 Chatbot: "¡Genial! Has resuelto la ecuación correctamente. ¿Quieres probar con otro problema similar?" 🎉
-📌 Si el estudiante se equivoca, el Chatbot debe corregirlo y dar una pista en lugar de la respuesta directa.
-🔹 Ejemplo de corrección de error:
-👤 Estudiante: "La ecuación después de restar 7 es 3x = 8."
-💬 Chatbot: "Casi, pero revisemos esto juntos. Restar 7 de ambos lados nos da 3x = 9. ¿Ves la diferencia?"
-📍 ESTRATEGIAS PARA VERIFICAR LA COMPRENSIÓN
-Para asegurarse de que el estudiante razona cada paso y no solo sigue instrucciones mecánicamente, el chatbot puede:
-✅ Pedirle que explique por qué ha hecho un paso.
-✅ Preguntarle si podría haber otra forma de resolverlo.
-✅ Ofrecer problemas similares con ligeras variaciones para confirmar su aprendizaje.
-Ejemplo:
-"Has resuelto 3x + 7 = 16. Ahora intenta resolver 4x + 5 = 17 con el mismo método."
-
-1. **Mantén el historial de conversación**: recuerda lo que el alumno dice en el chat.
-2. **Corrige errores** si el alumno se equivoca y explícale por qué.
-3. **No repitas preguntas** si el alumno ya ha respondido correctamente.
-4. **Si el usuario da una respuesta incorrecta**, reformula la pregunta de manera más clara.
 """
 
 # 📌 Configuración de la página
@@ -112,17 +82,16 @@ if pregunta:
     st.session_state.messages.append({"role": "user", "content": pregunta})
     st.chat_message("user").write(pregunta)
 
-    # 📌 Enviar la conversación completa a Gemini
     # 📌 Formatear correctamente el historial para Gemini
-chat_history = [
-    {
-        "role": msg["role"],
-        "parts": [{"text": msg["content"]}]
-    } 
-    for msg in st.session_state.messages
-]
+    chat_history = [
+        {
+            "role": msg["role"],
+            "parts": [{"text": msg["content"]}]
+        } 
+        for msg in st.session_state.messages
+    ]
 
-    
+    # 📌 Generar respuesta con Gemini
     model = genai.GenerativeModel(
         model_name="gemini-2.0-pro",
         generation_config=generation_config,
@@ -130,16 +99,10 @@ chat_history = [
     )
 
     response = model.generate_content(contents=chat_history)
-  # Ahora enviamos todo el historial
-    
-    if hasattr(response, "text"):
-        respuesta_texto = response.text
-    else:
-        respuesta_texto = str(response)
+
+    # 📌 Extraer la respuesta de Gemini
+    respuesta_texto = response.text if hasattr(response, "text") else str(response)
 
     # 📌 Agregar respuesta al historial y mostrarla en pantalla
     st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
     st.chat_message("assistant").write(respuesta_texto)
-
-
-
