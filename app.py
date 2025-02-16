@@ -113,7 +113,15 @@ if pregunta:
     st.chat_message("user").write(pregunta)
 
     # 📌 Enviar la conversación completa a Gemini
-    chat_history = [{"role": msg["role"], "content": msg["content"]} for msg in st.session_state.messages]
+    # 📌 Formatear correctamente el historial para Gemini
+chat_history = [
+    {
+        "role": msg["role"],
+        "parts": [{"text": msg["content"]}]
+    } 
+    for msg in st.session_state.messages
+]
+
     
     model = genai.GenerativeModel(
         model_name="gemini-2.0-pro",
@@ -121,7 +129,8 @@ if pregunta:
         system_instruction=system_instruction,
     )
 
-    response = model.generate_content(chat_history)  # Ahora enviamos todo el historial
+    response = model.generate_content(contents=chat_history)
+  # Ahora enviamos todo el historial
     
     if hasattr(response, "text"):
         respuesta_texto = response.text
