@@ -2,8 +2,8 @@ import streamlit as st
 import google.generativeai as genai
 import os
 
-# 📌 Configurar la clave de API de Gemini
-api_key = os.getenv("GEMINI_API_KEY")
+# 📌 Configurar la clave de API de Gemini desde Streamlit Secrets
+api_key = st.secrets["GEMINI_API_KEY"]
 
 if not api_key:
     st.error("No se encontró la clave de API de Gemini.")
@@ -93,12 +93,12 @@ if pregunta:
 
     # 📌 Generar respuesta con Gemini
     model = genai.GenerativeModel(
-        model_name="gemini-2.0-pro",
+        model_name="gemini-1.5-flash",  # ⚠️ Cambiado para evitar errores de disponibilidad
         generation_config=generation_config,
         system_instruction=system_instruction,
     )
 
-    response = model.generate_content(contents=chat_history)
+    response = model.generate_content(chat_history)  # ✅ Corregido para evitar errores de formato
 
     # 📌 Extraer la respuesta de Gemini
     respuesta_texto = response.text if hasattr(response, "text") else str(response)
