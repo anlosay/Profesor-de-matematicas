@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import os
+from PIL import Image
 
 # 📌 Configurar la clave de API de Gemini desde Streamlit Secrets
 api_key = st.secrets["GEMINI_API_KEY"]
@@ -12,13 +13,13 @@ else:
 
 # 📌 Configuración del chatbot
 generation_config = {
-    "temperature": 0.8,  # Reducimos la temperatura para respuestas más estables
+    "temperature": 0.8,
     "top_p": 0.9,
     "top_k": 40,
     "max_output_tokens": 8192,
 }
 
-# 📌 Instrucciones personalizadas del chatbot
+# 📌 Instrucciones personalizadas del chatbot (TU PROMPT)
 system_instruction = """
 📍 LIMITACIONES Y ALCANCE DE USO
 Tu única función es ayudar a los estudiantes a resolver problemas matemáticos. No responderás preguntas sobre historia, ciencia, literatura, tecnología, cultura general u otros temas ajenos a las matemáticas.
@@ -64,7 +65,7 @@ Si lo entiende bien, preséntale un desafío más complejo.
 st.set_page_config(page_title="Chatbot de Matemáticas 📐", page_icon="🤖")
 
 st.title("🤖 Chatbot de Matemáticas 📐")
-st.write("Escribe una pregunta matemática y te ayudaré a resolverla paso a paso.")
+st.write("Escribe una pregunta matemática o sube una imagen con un ejercicio, y te ayudaré a resolverlo paso a paso.")
 
 # 📌 Historial de conversación
 if "messages" not in st.session_state:
@@ -77,8 +78,33 @@ for msg in st.session_state.messages:
 # 📌 Entrada del usuario
 pregunta = st.chat_input("Escribe tu pregunta aquí...")
 
+# 📌 Permitir subir imágenes
+imagen = st.file_uploader("Sube una imagen con un problema matemático", type=["png", "jpg", "jpeg"])
+
+if imagen:
+    st.image(imagen, caption="Imagen subida", use_column_width=True)
+
+    # 📌 Enviar imagen a Gemini para reconocimiento
+    img = Image.open(imagen)
+    model = genai.GenerativeModel("gemini-1.5-flash")
+
+    response = model.generate_content(
+        ["Describe la ecuación matemática presente en la imagen y conviértela en formato LaTeX.", img]
+    )
+
+    if hasattr(response, "text"):
+        ecuacion_latex = response.text
+    else:
+        ecuacion_latex = str(response)
+
+    st.write("🔍 He detectado esta ecuación en la imagen:")
+    st.latex(ecuacion_latex)
+
+    # 📌 Agregar la ecuación detectada al historial y procesarla como pregunta
+    pregunta = f"Detecté esta ecuación en la imagen: {ecuacion_latex}"
+
+# 📌 Procesar pregunta escrita o extraída de imagen
 if pregunta:
-    # 📌 Agregar mensaje del usuario al historial
     st.session_state.messages.append({"role": "user", "content": pregunta})
     st.chat_message("user").write(pregunta)
 
@@ -93,16 +119,22 @@ if pregunta:
 
     # 📌 Generar respuesta con Gemini
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",  # ⚠️ Cambiado para evitar errores de disponibilidad
+        model_name="gemini-1.5-flash",
         generation_config=generation_config,
         system_instruction=system_instruction,
     )
 
-    response = model.generate_content(chat_history)  # ✅ Corregido para evitar errores de formato
+    response = model.generate_content(chat_history)
 
     # 📌 Extraer la respuesta de Gemini
     respuesta_texto = response.text if hasattr(response, "text") else str(response)
 
-    # 📌 Agregar respuesta al historial y mostrarla en pantalla
+    # 📌 Verificamos si la respuesta contiene contenido matemático en LaTeX
+    if "$$" in respuesta_texto or "\\" in respuesta_texto:
+        respuesta_texto = respuesta_texto.replace("$$", "").strip()
+        st.chat_message("assistant").latex(respuesta_texto)
+    else:
+        st.chat_message("assistant").write(respuesta_texto)
+
+    # 📌 Agregar respuesta al historial
     st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
-    st.chat_message("assistant").write(respuesta_texto)
